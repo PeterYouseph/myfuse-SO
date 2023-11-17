@@ -1,3 +1,4 @@
+// Para rodá-lo necessita-se da flag: gcc -D_FILE_OFFSET_BITS=64 myfs.c -o myfs -lfuse
 #define FUSE_USE_VERSION 30
 
 #include <fuse.h>
