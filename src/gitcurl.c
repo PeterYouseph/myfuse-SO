@@ -8,40 +8,82 @@
 // curl_easy_setopt(curl, CURLOPT_HTTPHEADER, "Authorization: token YOUR_TOKEN_HERE");
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <curl/curl.h>
 
-static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp)
+struct string
 {
-    ((std::string *)userp)->append((char *)contents, size * nmemb);
+    char *ptr;
+    size_t len;
+};
+
+void init_string(struct string *s)
+{
+    s->len = 0;
+    s->ptr = malloc(s->len + 1);
+    if (s->ptr == NULL)
+    {
+        fprintf(stderr, "malloc() failed\n");
+        exit(EXIT_FAILURE);
+    }
+    s->ptr[0] = '\0';
+}
+
+size_t writefunc(void *ptr, size_t size, size_t nmemb, struct string *s)
+{
+    size_t new_len = s->len + size * nmemb;
+    s->ptr = realloc(s->ptr, new_len + 1);
+    if (s->ptr == NULL)
+    {
+        fprintf(stderr, "realloc() failed\n");
+        exit(EXIT_FAILURE);
+    }
+    memcpy(s->ptr + s->len, ptr, size * nmemb);
+    s->ptr[new_len] = '\0';
+    s->len = new_len;
+
     return size * nmemb;
 }
 
-int main(void)
+int main(int argc, char **argv)
 {
+    if (argc < 3)
+    {
+        fprintf(stderr, "Usage: %s username repo\n", argv[0]);
+        return 1;
+    }
+
+    const char *username = argv[1];
+    const char *repo = argv[2];
+
+    char repo_url[256];
+    snprintf(repo_url, sizeof(repo_url), "https://api.github.com/repos/%s/%s", username, repo);
+
     CURL *curl;
     CURLcode res;
-    std::string readBuffer;
 
     curl_global_init(CURL_GLOBAL_DEFAULT);
 
     curl = curl_easy_init();
     if (curl)
     {
-        curl_easy_setopt(curl, CURLOPT_URL, "https://api.github.com/repos/username/repo");
+        struct string s;
+        init_string(&s);
 
-        // Github API requires a user agent
+        curl_easy_setopt(curl, CURLOPT_URL, repo_url);
         curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
-
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writefunc);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &s);
 
         res = curl_easy_perform(curl);
 
-        // Check for errors
         if (res != CURLE_OK)
             fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
 
-        // always cleanup
+        printf("%s\n", s.ptr);
+        free(s.ptr);
+
         curl_easy_cleanup(curl);
     }
 
