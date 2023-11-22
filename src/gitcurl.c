@@ -7,17 +7,19 @@
 // Além disso, é necessário utilizar o token de acesso pessoal do github:
 // curl_easy_setopt(curl, CURLOPT_HTTPHEADER, "Authorization: token YOUR_TOKEN_HERE");
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <curl/curl.h>
+#include <stdio.h>     // Biblioteca de Entrada e Saída
+#include <stdlib.h>    // Biblioteca de Funções de Uso Geral
+#include <string.h>    // Biblioteca de Strings
+#include <curl/curl.h> // Biblioteca de Comunicação com o GitHub
 
+// Struct para armazenar o conteúdo da requisição
 struct string
 {
     char *ptr;
     size_t len;
 };
 
+// Inicializa a struct string
 void init_string(struct string *s)
 {
     s->len = 0;
@@ -30,6 +32,7 @@ void init_string(struct string *s)
     s->ptr[0] = '\0';
 }
 
+// Função para escrever o conteúdo da requisição na struct string
 size_t writefunc(void *ptr, size_t size, size_t nmemb, struct string *s)
 {
     size_t new_len = s->len + size * nmemb;
@@ -46,7 +49,8 @@ size_t writefunc(void *ptr, size_t size, size_t nmemb, struct string *s)
     return size * nmemb;
 }
 
-int main(int argc, char **argv)
+// Função principal para comunicação com o GitHub
+int gitcurl_main(int argc, char **argv)
 {
     if (argc < 3)
     {

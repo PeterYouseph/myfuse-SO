@@ -1,32 +1,40 @@
 // Para rodá-lo necessita-se da flag: gcc -D_FILE_OFFSET_BITS=64 myfs.c -o myfs -lfuse
-#define FUSE_USE_VERSION 30
+#define FUSE_USE_VERSION 30 // Ultima versão do FUSE File System
 
-#include <fuse.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <time.h>
-#include <string.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <linux/stat.h>
-#include <sys/stat.h>
+// Bibliotecas necessárias para o FUSE File System
+#include "gitcurl.h"    // Biblioteca de Comunicação com o GitHub
+#include <fuse.h>       // Biblioteca do FUSE File System
+#include <stdio.h>      // Biblioteca de Entrada e Saída
+#include <unistd.h>     // Biblioteca de Chamadas de Sistema
+#include <sys/types.h>  // Biblioteca de Tipos de Dados
+#include <time.h>       // Biblioteca de Tempo e Data (Para o FUSE File System)
+#include <string.h>     // Biblioteca de Strings
+#include <stdlib.h>     // Biblioteca de Funções de Uso Geral
+#include <errno.h>      // Biblioteca de verificação de erros
+#include <fcntl.h>      // Biblioteca de Controle de Arquivos e Diretórios
+#include <linux/stat.h> // Biblioteca de Status do Sistema Linux
+#include <sys/stat.h>   // Biblioteca de Status do Sistema geral
+
+// Lista de Diretórios
 char dir_list[256][256];
-int curr_dir_idx = -1;
+int curr_dir_idx = -1; // Índice do Diretório Atual
 
+// Lista de Arquivos e Conteúdo
 char files_list[256][256];
-int curr_file_idx = -1;
+int curr_file_idx = -1; // Índice do Arquivo Atual
 
+// Lista de Conteúdo dos Arquivos
 char files_content[256][256];
-int curr_file_content_idx = -1;
+int curr_file_content_idx = -1; // Índice do Conteúdo do Arquivo Atual
 
+// Adiciona um diretório na lista de diretórios
 void add_dir(const char *dir_name)
 {
     curr_dir_idx++;
     strcpy(dir_list[curr_dir_idx], dir_name);
 }
 
+// Adiciona um arquivo na lista de arquivos
 void add_file(const char *filename)
 {
     curr_file_idx++;
@@ -36,6 +44,7 @@ void add_file(const char *filename)
     strcpy(files_content[curr_file_content_idx], "");
 }
 
+// Verifica se o arquivo existe na lista de arquivos
 int is_file(const char *path)
 {
     path++;
@@ -47,6 +56,7 @@ int is_file(const char *path)
     return 0;
 }
 
+// Retorna o índice do arquivo na lista de arquivos
 int get_file_index(const char *path)
 {
     path++;
@@ -58,6 +68,7 @@ int get_file_index(const char *path)
     return -1;
 }
 
+// Verifica se o diretório existe na lista de diretórios
 int is_dir(const char *path)
 {
     path++;
@@ -69,6 +80,7 @@ int is_dir(const char *path)
     return 0;
 }
 
+// Escreve no arquivo o novo conteúdo
 void write_to_file(const char *path, const char *new_content)
 {
     int file_idx = get_file_index(path);
@@ -79,6 +91,7 @@ void write_to_file(const char *path, const char *new_content)
     strcpy(files_content[file_idx], new_content);
 }
 
+// Retorna o conteúdo do arquivo na lista de arquivos
 static int do_getattr(const char *path, struct stat *st)
 {
     st->st_uid = getuid();
@@ -105,29 +118,12 @@ static int do_getattr(const char *path, struct stat *st)
     return 0;
 }
 
-// Função Incompleta (Falta dois Parametros dentro do FILLER)
-// static int do_readdir(const char *path, void *buffer, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi)
-// {
-//     filler(buffer, ".", NULL, 0, offset);  // Current Directory
-//     filler(buffer, "..", NULL, 0, offset); // Parent Directory
-
-//     if (strcmp(path, "/") == 0) // If the user is trying to show the files/directories of the root directory show the following
-//     {
-//         for (int curr_idx = 0; curr_idx <= curr_dir_idx; curr_idx++)
-//             filler(buffer, dir_list[curr_idx], NULL, 0, offset);
-
-//         for (int curr_idx = 0; curr_idx <= curr_file_idx; curr_idx++)
-//             filler(buffer, files_list[curr_idx], NULL, 0, offset);
-//     }
-
-//     return 0;
-// }
-
+// Retorna a lista de arquivos e diretórios
 static int do_readdir(const char *path, void *buffer, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi)
 {
     struct stat stbuf;
     memset(&stbuf, 0, sizeof(stbuf));
-    stbuf.st_mode = S_IFDIR | 0755;
+    stbuf.st_mode = __S_IFDIR | 0755;
     stbuf.st_nlink = 2;
 
     filler(buffer, ".", &stbuf, 0);  // Current Directory
@@ -140,7 +136,7 @@ static int do_readdir(const char *path, void *buffer, fuse_fill_dir_t filler, of
             filler(buffer, dir_list[curr_idx], &stbuf, 0);
         }
 
-        stbuf.st_mode = S_IFREG | 0644;
+        stbuf.st_mode = __S_IFREG | 0644;
         stbuf.st_nlink = 1;
         stbuf.st_size = 1024;
 
@@ -153,6 +149,7 @@ static int do_readdir(const char *path, void *buffer, fuse_fill_dir_t filler, of
     return 0;
 }
 
+// Retorna o conteúdo do arquivo na lista de arquivos
 static int do_read(const char *path, char *buffer, size_t size, off_t offset, struct fuse_file_info *fi)
 {
     int file_idx = get_file_index(path);
@@ -167,6 +164,7 @@ static int do_read(const char *path, char *buffer, size_t size, off_t offset, st
     return strlen(content) - offset;
 }
 
+// Adiciona um diretório na lista de diretórios
 static int do_mkdir(const char *path, mode_t mode)
 {
     path++;
@@ -175,6 +173,7 @@ static int do_mkdir(const char *path, mode_t mode)
     return 0;
 }
 
+// Adiciona um arquivo na lista de arquivos
 static int do_mknod(const char *path, mode_t mode, dev_t rdev)
 {
     path++;
@@ -183,6 +182,7 @@ static int do_mknod(const char *path, mode_t mode, dev_t rdev)
     return 0;
 }
 
+// Retorna o índice do diretório na lista de diretórios
 int get_dir_index(const char *dirname)
 {
     for (int i = 0; i <= curr_dir_idx; i++)
@@ -193,9 +193,10 @@ int get_dir_index(const char *dirname)
         }
     }
 
-    return -1; // Return -1 if the directory was not found
+    return -1; // Retorna -1 se não encontrar o diretório
 }
 
+// Retorna o índice do arquivo na lista de arquivos
 static int do_write(const char *path, const char *buffer, size_t size, off_t offset, struct fuse_file_info *info)
 {
     write_to_file(path, buffer);
@@ -203,6 +204,7 @@ static int do_write(const char *path, const char *buffer, size_t size, off_t off
     return size;
 }
 
+// Remove o arquivo da lista de arquivos
 void remove_file(const char *filename)
 {
     int file_idx = get_file_index(filename);
@@ -220,6 +222,7 @@ void remove_file(const char *filename)
     curr_file_content_idx--;
 }
 
+// Remove o diretório da lista de diretórios
 void remove_dir(const char *dirname)
 {
     int dir_idx = get_dir_index(dirname);
@@ -235,6 +238,7 @@ void remove_dir(const char *dirname)
     curr_dir_idx--;
 }
 
+// Remove o arquivo da lista de arquivos
 static int do_unlink(const char *path)
 {
     path++;
@@ -243,6 +247,7 @@ static int do_unlink(const char *path)
     return 0;
 }
 
+// Remove o diretório da lista de diretórios
 static int do_rmdir(const char *path)
 {
     path++;
@@ -251,6 +256,7 @@ static int do_rmdir(const char *path)
     return 0;
 }
 
+// Renomeia o arquivo ou diretório
 static int do_rename(const char *from, const char *to)
 {
     int file_idx = get_file_index(from);
@@ -272,18 +278,20 @@ static int do_rename(const char *from, const char *to)
     return -ENOENT;
 }
 
+// Muda as permissões do arquivo ou diretório
 static int do_chmod(const char *path, mode_t mode)
 {
-    // This is a no-op in our simple filesystem.
+    // Isso é uma operação sem efeito no nosso sistema de arquivos simples.
     return 0;
 }
 
 static int do_chown(const char *path, uid_t uid, gid_t gid)
 {
-    // This is a no-op in our simple filesystem.
+    // Isso é uma operação sem efeito no nosso sistema de arquivos simples.
     return 0;
 }
 
+// Finaliza o arquivo com o tamanho especificado
 static int do_truncate(const char *path, off_t size)
 {
     int file_idx = get_file_index(path);
@@ -297,7 +305,7 @@ static int do_truncate(const char *path, off_t size)
     return 0;
 }
 
-// Add these to your fuse_operations struct
+// Adiciona essas funções à fuse_operations struct
 static struct fuse_operations operations = {
     .getattr = do_getattr,
     .readdir = do_readdir,
@@ -313,7 +321,10 @@ static struct fuse_operations operations = {
     .truncate = do_truncate,
 };
 
+// Função principal do programa
 int main(int argc, char *argv[])
 {
+    printf("myfs is running...\n");
+    // gitcurl_main(argc, argv);
     return fuse_main(argc, argv, &operations, NULL);
 }
