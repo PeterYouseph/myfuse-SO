@@ -2,7 +2,6 @@
 #define FUSE_USE_VERSION 30 // Ultima versão do FUSE File System
 
 // Bibliotecas necessárias para o FUSE File System
-#include "gitcurl.h"    // Biblioteca de Comunicação com o GitHub
 #include <fuse.h>       // Biblioteca do FUSE File System
 #include <stdio.h>      // Biblioteca de Entrada e Saída
 #include <unistd.h>     // Biblioteca de Chamadas de Sistema
