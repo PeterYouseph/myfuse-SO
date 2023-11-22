@@ -1,5 +1,3 @@
-// Para rodar o FUSE File usersystem (myfs) é necessário instalá-lo: sudo apt-get install libfuse-dev e rodar com a flag: gcc -D_FILE_OFFSET_BITS=64 myfs.c -o myfs -lfuse
-
 // Para rodar com o gitcurl.c é necessário a flag: gcc -D_FILE_OFFSET_BITS=64 gitcurl.c -o gitcurl -lcurl
 
 // Sendo necessário instalar libcurl: sudo apt-get install libcurl4-openssl-dev e sudo apt-get install libcurl4-gnutls-dev
@@ -50,7 +48,7 @@ size_t writefunc(void *ptr, size_t size, size_t nmemb, struct string *s)
 }
 
 // Função principal para comunicação com o GitHub
-int gitcurl_main(int argc, char **argv)
+int main(int argc, char **argv)
 {
     if (argc < 3)
     {
